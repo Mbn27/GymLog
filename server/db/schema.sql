@@ -1,0 +1,29 @@
+CREATE TABLE IF NOT EXISTS exercises (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  muscle_group TEXT,
+  notes TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS workouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  ended_at TEXT,
+  notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  workout_id INTEGER NOT NULL,
+  exercise_id INTEGER NOT NULL,
+  weight REAL NOT NULL,
+  reps INTEGER NOT NULL,
+  set_order INTEGER NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE CASCADE,
+  FOREIGN KEY (exercise_id) REFERENCES exercises(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sets_workout ON sets(workout_id);
+CREATE INDEX IF NOT EXISTS idx_sets_exercise ON sets(exercise_id);
