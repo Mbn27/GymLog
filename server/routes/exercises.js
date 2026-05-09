@@ -64,4 +64,60 @@ router.get('/:id/history', (req, res) => {
   res.json(history);
 });
 
+// GET /api/exercises/:id/stats - personal records and stats
+router.get('/:id/stats', (req, res) => {
+  const exerciseId = req.params.id;
+
+  // Heaviest weight ever lifted (any reps)
+  const maxWeightSet = db.prepare(`
+    SELECT sets.*, workouts.started_at as workout_date
+    FROM sets
+    JOIN workouts ON sets.workout_id = workouts.id
+    WHERE sets.exercise_id = ?
+    ORDER BY sets.weight DESC, sets.reps DESC
+    LIMIT 1
+  `).get(exerciseId);
+
+  // Most reps at the heaviest weight
+  let maxRepsAtTopWeight = null;
+  if (maxWeightSet) {
+    maxRepsAtTopWeight = db.prepare(`
+      SELECT MAX(reps) as max_reps
+      FROM sets
+      WHERE exercise_id = ? AND weight = ?
+    `).get(exerciseId, maxWeightSet.weight);
+  }
+
+  // Estimated 1-rep max using the Epley formula: weight * (1 + reps/30)
+  // Computed across all sets, return the highest estimate
+  const allSets = db.prepare(
+    'SELECT weight, reps FROM sets WHERE exercise_id = ? AND reps > 0'
+  ).all(exerciseId);
+  let estimated1RM = 0;
+  let estimated1RMSet = null;
+  for (const s of allSets) {
+    const est = s.weight * (1 + s.reps / 30);
+    if (est > estimated1RM) {
+      estimated1RM = est;
+      estimated1RMSet = s;
+    }
+  }
+
+  // Total volume (sum of weight × reps across all time)
+  const volumeRow = db.prepare(`
+    SELECT COALESCE(SUM(weight * reps), 0) as total_volume,
+           COUNT(*) as total_sets
+    FROM sets WHERE exercise_id = ?
+  `).get(exerciseId);
+
+  res.json({
+    max_weight_set: maxWeightSet || null,
+    max_reps_at_top_weight: maxRepsAtTopWeight?.max_reps || null,
+    estimated_1rm: estimated1RM > 0 ? Math.round(estimated1RM * 10) / 10 : null,
+    estimated_1rm_from: estimated1RMSet,
+    total_volume: volumeRow.total_volume,
+    total_sets: volumeRow.total_sets,
+  });
+});
+
 module.exports = router;
