@@ -3,10 +3,14 @@ const cors = require('cors');
 const db = require('./db/database');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173'];
+
+app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(express.json());
 
 // Routes

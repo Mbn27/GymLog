@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Open (or create) the database file
-const dbPath = path.join(__dirname, 'gymlog.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'gymlog.db');
 const db = new Database(dbPath);
 
 // Enable foreign keys (off by default in SQLite)
